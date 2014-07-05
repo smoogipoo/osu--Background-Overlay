@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -80,42 +83,8 @@ namespace osu__Background_Overlay
         [DllImport("user32.dll")]
         static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
 
-        /// <summary>
-        /// Gets the desktop background handle.
-        /// </summary>
-        /// <returns>A pointer to the desktop background window.</returns>
-        [DllImport("user32.dll")]
-        static extern IntPtr GetShellWindow();
-
-        /// <summary>
-        ///Performs a bit-block transfer of the color data corresponding to a
-        ///rectangle of pixels from the specified source device context into
-        ///a destination device context.
-        /// </summary>
-        /// <param name="hdc">Handle to the destination device context.</param>
-        /// <param name="nXDest">The leftmost x-coordinate of the destination rectangle (in pixels).</param>
-        /// <param name="nYDest">The topmost y-coordinate of the destination rectangle (in pixels).</param>
-        /// <param name="nWidth">The width of the source and destination rectangles (in pixels).</param>
-        /// <param name="nHeight">The height of the source and the destination rectangles (in pixels).</param>
-        /// <param name="hdcSrc">Handle to the source device context.</param>
-        /// <param name="nXSrc">The leftmost x-coordinate of the source rectangle (in pixels).</param>
-        /// <param name="nYSrc">The topmost y-coordinate of the source rectangle (in pixels).</param>
-        /// <param name="dwRop">A raster-operation code.</param>
-        /// <returns>
-        ///    <c>true</c> if the operation succeedes, <c>false</c> otherwise. To get extended error information, call <see cref="System.Runtime.InteropServices.Marshal.GetLastWin32Error"/>.
-        /// </returns>
-        [DllImport("gdi32.dll", EntryPoint = "BitBlt", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool BitBlt([In] IntPtr hdc, int nXDest, int nYDest, int nWidth, int nHeight, [In] IntPtr hdcSrc, int nXSrc, int nYSrc, TernaryRasterOperations dwRop);
-
         [DllImport("user32.dll")]
         static extern bool ClientToScreen(IntPtr hwnd, out Point lpPoint);
-
-        [DllImport("user32.dll", ExactSpelling = true, SetLastError = true)]
-        public static extern IntPtr GetDC(IntPtr hWnd);
-
-        [DllImport("user32.dll", ExactSpelling = true)]
-        public static extern IntPtr ReleaseDC(IntPtr hWnd, IntPtr hDC);
 
         /// <summary>
         /// The GetForegroundWindow function returns a handle to the foreground window.
@@ -137,6 +106,10 @@ namespace osu__Background_Overlay
 
         [DllImport("user32.dll")]
         static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool SystemParametersInfo(uint uiAction, uint uiParam, StringBuilder pvParam, int fWinIni);
         #endregion
 
         /// <summary>
@@ -189,6 +162,14 @@ namespace osu__Background_Overlay
             };
             mainThread.Start();
 
+            if (Properties.Settings.Default.FirstStart)
+            {
+                TrayIcon.ShowBalloonTip(5000, "o!BGO", @"o!BGO is running in the system tray. Right-click the icon for options.", ToolTipIcon.Info);
+                Properties.Settings.Default.FirstStart = false;
+                Properties.Settings.Default.Save();
+            }
+
+
             //This is required to show the menu
             Application.Run();
         }
@@ -215,17 +196,10 @@ namespace osu__Background_Overlay
 
             Console.SetWindowSize(60, 10);
             Console.SetBufferSize(60, 500);
-            Log("Determining your Windows wallpaper directory...");
-            string wallpaperFolder = (string)Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop").GetValue("Wallpaper");
-            if (wallpaperFolder == null)
-            {
-                Log("Failed to determine the operating system wallpaper directory.\n" +
-                                    "Press any key to exit.");
-                Console.ReadKey();
-                Environment.Exit(1);
-            }
 
-            BackgroundWatcher = new FileSystemWatcher(Path.GetDirectoryName(wallpaperFolder));
+            
+
+            BackgroundWatcher = new FileSystemWatcher(Path.GetDirectoryName((string)Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop").GetValue("Wallpaper")));
             BackgroundWatcher.Changed += (sender, e) => WallpaperChanged(1000);
             BackgroundWatcher.EnableRaisingEvents = true;
 
@@ -300,6 +274,7 @@ namespace osu__Background_Overlay
                             //to prevent memory leaks
                             clippedBG.Dispose();
 
+
                             clippedBG = CaptureFromScreen(OsuLocation.X,
                                 OsuLocation.Y,
                                 ClipRectangle.Right - ClipRectangle.Left,
@@ -354,21 +329,57 @@ namespace osu__Background_Overlay
 
         private static Bitmap CaptureFromScreen(int x, int y, int width, int height)
         {
-            //We'll copy the screen into this bitmap
-            Bitmap destinationBitmap = new Bitmap(width, height);
-            Graphics g = Graphics.FromImage(destinationBitmap);
+            StringBuilder sb = new StringBuilder(500);
+            SystemParametersInfo(0x73, (uint)sb.Capacity, sb, 0);
+            string cWallpaper = sb.ToString();
 
-            IntPtr graphicsDC = g.GetHdc();
-            IntPtr screenDC = GetDC(GetShellWindow());
+            string[] files;
 
-            //Copy the screen
-            BitBlt(graphicsDC, 0, 0, width, height, screenDC, x, y, TernaryRasterOperations.SRCCOPY);
+            if (cWallpaper.Substring(cWallpaper.LastIndexOf('\\') + 1) == "TranscodedWallpaper")
+            {
+                files = Directory.GetFiles(cWallpaper.Substring(0, cWallpaper.LastIndexOf('\\')), "Transcoded_*").OrderByDescending(fName => fName).Reverse().Union(new[] { cWallpaper }).ToArray();
+            }
+            else
+            {
+                files = new string[1];
+                files[0] = cWallpaper;
+            }
 
-            ReleaseDC(GetShellWindow(), screenDC);
-            g.ReleaseHdc();
+
+            //Get the max screen bounds
+            Rectangle maxBounds = SystemInformation.VirtualScreen;
+            Screen[] screens = Screen.AllScreens;
+
+            Bitmap screenBitmap = new Bitmap(maxBounds.Width - maxBounds.X, maxBounds.Height - maxBounds.Y);
+            Graphics screenGraphics = Graphics.FromImage(screenBitmap);
+
+            Bitmap tBitmap = new Bitmap(1, 1);
+            int currentFile = 0;
+            foreach (string file in files)
+            {
+                if (file != files.Last() || files.Length == 1)
+                {
+                    tBitmap.Dispose();
+                    using (FileStream stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        tBitmap = new Bitmap(Image.FromStream(stream));
+                    screenGraphics.DrawImageUnscaled(tBitmap, screens[currentFile].Bounds.X, screens[currentFile].Bounds.Y);
+                    currentFile += 1;
+                }
+            }
+
+            //Pick out the region 
+            Bitmap bmp = new Bitmap(width, height);
+            Graphics g = Graphics.FromImage(bmp);
+            g.DrawImage(screenBitmap, 0, 0, new Rectangle(x, y, width, height), GraphicsUnit.Pixel);
+
+            screenBitmap.Save(Environment.CurrentDirectory + "\\test.jpg");
+
             g.Dispose();
+            tBitmap.Dispose();
+            screenGraphics.Dispose();
+            screenBitmap.Dispose();
 
-            return destinationBitmap;
+            return bmp;
         }
 
         private static void MonitorOsu()
