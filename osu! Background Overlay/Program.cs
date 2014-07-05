@@ -370,9 +370,7 @@ namespace osu__Background_Overlay
             //Pick out the region 
             Bitmap bmp = new Bitmap(width, height);
             Graphics g = Graphics.FromImage(bmp);
-            g.DrawImage(screenBitmap, 0, 0, new Rectangle(x, y, width, height), GraphicsUnit.Pixel);
-
-            screenBitmap.Save(Environment.CurrentDirectory + "\\test.jpg");
+            g.DrawImage(screenBitmap, new Rectangle(0, 0, width, height), new Rectangle(x, y, width, height), GraphicsUnit.Pixel);
 
             g.Dispose();
             tBitmap.Dispose();
