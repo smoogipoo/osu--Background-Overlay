@@ -14,104 +14,6 @@ namespace osu__Background_Overlay
 {
     class Program
     {
-        #region Pinvoke objects
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
-        {
-            public int Left;        // x position of upper-left corner
-            public int Top;         // y position of upper-left corner
-            public int Right;       // x position of lower-right corner
-            public int Bottom;      // y position of lower-right corner
-        }
-
-        public enum TernaryRasterOperations : uint
-        {
-            /// <summary>dest = source</summary>
-            SRCCOPY = 0x00CC0020,
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct MOUSEINPUT
-        {
-            public int dx;
-            public int dy;
-            public int mouseData;
-            public int dwFlags;
-            public int time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct KEYBDINPUT
-        {
-            public short wVk;
-            public short wScan;
-            public int dwFlags;
-            public int time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct HARDWAREINPUT
-        {
-            public int uMsg;
-            public short wParamL;
-            public short wParamH;
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        struct INPUT
-        {
-            [FieldOffset(0)]
-            public int type;
-            [FieldOffset(4)]
-            public MOUSEINPUT mi;
-            [FieldOffset(4)]
-            public KEYBDINPUT ki;
-            [FieldOffset(4)]
-            public HARDWAREINPUT hi;
-        }
-        #endregion
-
-        #region Pinvokes
-        /// <summary>
-        /// Gets the client rectangle of a window.
-        /// </summary>
-        /// <param name="hWnd">The wiindow handle.</param>
-        /// <param name="lpRect">The rectangle to palce the coordinates.</param>
-        [DllImport("user32.dll")]
-        static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
-
-        [DllImport("user32.dll")]
-        static extern bool ClientToScreen(IntPtr hwnd, out Point lpPoint);
-
-        /// <summary>
-        /// The GetForegroundWindow function returns a handle to the foreground window.
-        /// </summary>
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        /// <summary>
-        /// Synthesizes keystrokes, mouse motions, and button clicks.
-        /// </summary>
-        [DllImport("user32.dll")]
-        private static extern uint SendInput(uint nInputs, [MarshalAs(UnmanagedType.LPArray), In] INPUT[] pInputs, int cbSize);
-
-        [DllImport("kernel32.dll")]
-        static extern IntPtr GetConsoleWindow();
-
-        [DllImport("user32.dll")]
-        static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool SystemParametersInfo(uint uiAction, uint uiParam, StringBuilder pvParam, int fWinIni);
-        #endregion
-
         /// <summary>
         /// Rough thread delay in milliseconds.
         /// </summary>
@@ -123,7 +25,7 @@ namespace osu__Background_Overlay
         private const string SKIN_BACKUP_PREFIX = "BGOBackup_";
         private const string OSU_BACKGROUND_NAME = "menu-background.jpg";
 
-        private static RECT ClipRectangle;
+        private static WinApiHelper.RECT ClipRectangle;
         private static Point OsuLocation = new Point(int.MinValue, int.MinValue);
         private static Process OsuProcess;
         private static FileSystemWatcher BackgroundWatcher;
@@ -178,13 +80,13 @@ namespace osu__Background_Overlay
         {
             if (IsShown)
             {
-                ShowWindow(GetConsoleWindow(), 0);
+                WinApiHelper.ShowWindow(WinApiHelper.GetConsoleWindow(), 0);
                 ((MenuItem)sender).Text = @"Show the console";
             }
             else
             {
                 ((MenuItem)sender).Text = @"Hide the console";
-                ShowWindow(GetConsoleWindow(), 5);
+                WinApiHelper.ShowWindow(WinApiHelper.GetConsoleWindow(), 5);
             }
             IsShown = !IsShown;
         }
@@ -192,7 +94,7 @@ namespace osu__Background_Overlay
         private static void ProgramMain()
         {
             //Initially hide the console
-            ShowWindow(GetConsoleWindow(), 0);
+            WinApiHelper.ShowWindow(WinApiHelper.GetConsoleWindow(), 0);
 
             Console.SetWindowSize(60, 10);
             Console.SetBufferSize(60, 500);
@@ -291,16 +193,16 @@ namespace osu__Background_Overlay
                                 return;
                             }
                         }
-                         
-                        IntPtr currentWindow = GetForegroundWindow();
+
+                        IntPtr currentWindow = WinApiHelper.GetForegroundWindow();
 
                         //SendInput sends commands to the foreground window
-                        SetForegroundWindow(OsuProcess.MainWindowHandle);
+                        WinApiHelper.SetForegroundWindow(OsuProcess.MainWindowHandle);
 
                         //Sleep while foreground window is being shown
                         Thread.Sleep(100);
 
-                        INPUT[] InputData = new INPUT[4];
+                        WinApiHelper.INPUT[] InputData = new WinApiHelper.INPUT[4];
                         short[] keys = { 0x38, 0x1D, 0x2A, 0x1F };
                         for (int i = 0; i < 4; i++ )
                         {
@@ -308,7 +210,7 @@ namespace osu__Background_Overlay
                             InputData[i].ki.wScan = keys[i];
                             InputData[i].ki.dwFlags = 0x0008; //SCANCODE
                         }
-                        SendInput((uint)InputData.Length, InputData, Marshal.SizeOf(typeof(INPUT)));
+                        WinApiHelper.SendInput((uint)InputData.Length, InputData, Marshal.SizeOf(typeof(WinApiHelper.INPUT)));
 
                         //We don't want to send keyup instantly
                         //100ms delay should be enough in any situation
@@ -316,9 +218,9 @@ namespace osu__Background_Overlay
 
                         for (int i = 0; i < 4; i++)
                             InputData[i].ki.dwFlags |= 0x0002; //KEYUP
-                        SendInput((uint)InputData.Length, InputData, Marshal.SizeOf(typeof(INPUT)));
+                        WinApiHelper.SendInput((uint)InputData.Length, InputData, Marshal.SizeOf(typeof(WinApiHelper.INPUT)));
 
-                        SetForegroundWindow(currentWindow);
+                        WinApiHelper.SetForegroundWindow(currentWindow);
 
                         Log("Wallpaper changed!");
                     }
@@ -330,7 +232,7 @@ namespace osu__Background_Overlay
         private static Bitmap CaptureFromScreen(int x, int y, int width, int height)
         {
             StringBuilder sb = new StringBuilder(500);
-            SystemParametersInfo(0x73, (uint)sb.Capacity, sb, 0);
+            WinApiHelper.SystemParametersInfo(0x73, (uint)sb.Capacity, sb, 0);
             string cWallpaper = sb.ToString();
 
             string[] files;
@@ -344,7 +246,6 @@ namespace osu__Background_Overlay
                 files = new string[1];
                 files[0] = cWallpaper;
             }
-
 
             //Get the max screen bounds
             Rectangle maxBounds = SystemInformation.VirtualScreen;
@@ -362,7 +263,7 @@ namespace osu__Background_Overlay
                     tBitmap.Dispose();
                     using (FileStream stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         tBitmap = new Bitmap(Image.FromStream(stream));
-                    screenGraphics.DrawImageUnscaled(tBitmap, screens[currentFile].Bounds.X, screens[currentFile].Bounds.Y);
+                    screenGraphics.DrawImage(tBitmap, screens[currentFile].Bounds.X, screens[currentFile].Bounds.Y);
                     currentFile += 1;
                 }
             }
@@ -413,8 +314,8 @@ namespace osu__Background_Overlay
                 Point p = Point.Empty;
 
                 //Get the window rectangle
-                if (!GetClientRect(OsuProcess.MainWindowHandle, out ClipRectangle)
-                    || !ClientToScreen(OsuProcess.MainWindowHandle, out p))
+                if (!WinApiHelper.GetClientRect(OsuProcess.MainWindowHandle, out ClipRectangle)
+                    || !WinApiHelper.ClientToScreen(OsuProcess.MainWindowHandle, out p))
                 {
                     //Couldn't find window, reset to null
                     OsuProcess = null;
