@@ -9,9 +9,7 @@ namespace osu__Background_Overlay
 {
     class WinApiHelper
     {
-
         #region Pinvoke objects
-
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT
         {

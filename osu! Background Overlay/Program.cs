@@ -231,52 +231,12 @@ namespace osu__Background_Overlay
 
         private static Bitmap CaptureFromScreen(int x, int y, int width, int height)
         {
-            StringBuilder sb = new StringBuilder(500);
-            WinApiHelper.SystemParametersInfo(0x73, (uint)sb.Capacity, sb, 0);
-            string cWallpaper = sb.ToString();
-
-            string[] files;
-
-            if (cWallpaper.Substring(cWallpaper.LastIndexOf('\\') + 1) == "TranscodedWallpaper")
-            {
-                files = Directory.GetFiles(cWallpaper.Substring(0, cWallpaper.LastIndexOf('\\')), "Transcoded_*").OrderByDescending(fName => fName).Reverse().Union(new[] { cWallpaper }).ToArray();
-            }
-            else
-            {
-                files = new string[1];
-                files[0] = cWallpaper;
-            }
-
-            //Get the max screen bounds
-            Rectangle maxBounds = SystemInformation.VirtualScreen;
-            Screen[] screens = Screen.AllScreens;
-
-            Bitmap screenBitmap = new Bitmap(maxBounds.Width - maxBounds.X, maxBounds.Height - maxBounds.Y);
-            Graphics screenGraphics = Graphics.FromImage(screenBitmap);
-
-            Bitmap tBitmap = new Bitmap(1, 1);
-            int currentFile = 0;
-            foreach (string file in files)
-            {
-                if (file != files.Last() || files.Length == 1)
-                {
-                    tBitmap.Dispose();
-                    using (FileStream stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        tBitmap = new Bitmap(Image.FromStream(stream));
-                    screenGraphics.DrawImage(tBitmap, screens[currentFile].Bounds.X, screens[currentFile].Bounds.Y);
-                    currentFile += 1;
-                }
-            }
-
             //Pick out the region 
             Bitmap bmp = new Bitmap(width, height);
             Graphics g = Graphics.FromImage(bmp);
-            g.DrawImage(screenBitmap, new Rectangle(0, 0, width, height), new Rectangle(x, y, width, height), GraphicsUnit.Pixel);
 
-            g.Dispose();
-            tBitmap.Dispose();
-            screenGraphics.Dispose();
-            screenBitmap.Dispose();
+            using (Bitmap screenBitmap = GraphicsHelper.CopyScreen())
+                g.DrawImage(screenBitmap, new Rectangle(0, 0, width, height), new Rectangle(x, y, width, height), GraphicsUnit.Pixel);                
 
             return bmp;
         }
