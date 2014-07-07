@@ -77,16 +77,16 @@ namespace osu__Background_Overlay
                             switch (imageTileMode)
                             {
                                 case TileMode.NONE:
-                                    DrawImageUnscaledClippedCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds);
+                                    DrawImageUnscaledClippedCentered(screenGraphics, tBitmap, scr.Bounds);
                                     break;
                                 case TileMode.STRETCH:
-                                    screenGraphics.DrawImage(tBitmap, files.Length == 1 ? maxBounds : scr.Bounds, 0, 0, tBitmap.Width, tBitmap.Height, GraphicsUnit.Pixel);
+                                    screenGraphics.DrawImage(tBitmap, scr.Bounds, 0, 0, tBitmap.Width, tBitmap.Height, GraphicsUnit.Pixel);
                                     break;
                                 case TileMode.FIT:
-                                    DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds);
+                                    DrawImageClippedFitCentered(screenGraphics, tBitmap, scr.Bounds);
                                     break;
                                 case TileMode.FILL:
-                                    DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds, true);
+                                    DrawImageClippedFitCentered(screenGraphics, tBitmap, scr.Bounds, true);
                                     break;
                             }
                         }
