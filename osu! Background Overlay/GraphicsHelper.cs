@@ -33,7 +33,11 @@ namespace osu__Background_Overlay
             string[] files;
 
             if (cWallpaper.Substring(cWallpaper.LastIndexOf('\\') + 1) == "TranscodedWallpaper")
-                files = Directory.GetFiles(cWallpaper.Substring(0, cWallpaper.LastIndexOf('\\')), "Transcoded_*").OrderByDescending(fName => fName).Reverse().Union(new[] { cWallpaper }).ToArray();
+                files = Directory.GetFiles(cWallpaper.Substring(0, cWallpaper.LastIndexOf('\\')), "Transcoded_*")
+                    .OrderByDescending(fName => fName)
+                    .Reverse()
+                    .Union(new[] { cWallpaper })
+                    .ToArray();
             else
             {
                 files = new string[1];
