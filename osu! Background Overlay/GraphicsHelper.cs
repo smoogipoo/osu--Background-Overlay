@@ -60,7 +60,6 @@ namespace osu__Background_Overlay
             Graphics screenGraphics = Graphics.FromImage(screenBitmap);
 
             //Add each bitmap to the generated background image
-            Bitmap tBitmap = new Bitmap(1, 1);
             int currentFile = 0;
             switch (imageTileMode)
             {
@@ -72,24 +71,24 @@ namespace osu__Background_Overlay
                         if (currentFile > files.Length - 1)
                             currentFile = 0;
 
-                        tBitmap.Dispose();
                         using (FileStream stream = new FileStream(files[currentFile], FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                            tBitmap = new Bitmap(Image.FromStream(stream));
-
-                        switch (imageTileMode)
+                        using (Bitmap tBitmap = new Bitmap(Image.FromStream(stream)))
                         {
-                            case TileMode.NONE:
-                                DrawImageUnscaledClippedCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds);
-                                break;
-                            case TileMode.STRETCH:
-                                screenGraphics.DrawImage(tBitmap, files.Length == 1 ? maxBounds : scr.Bounds, 0, 0, tBitmap.Width, tBitmap.Height, GraphicsUnit.Pixel);
-                                break;
-                            case TileMode.FIT:
-                                DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds);
-                                break;
-                            case TileMode.FILL:
-                                DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds, true);
-                                break;
+                            switch (imageTileMode)
+                            {
+                                case TileMode.NONE:
+                                    DrawImageUnscaledClippedCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds);
+                                    break;
+                                case TileMode.STRETCH:
+                                    screenGraphics.DrawImage(tBitmap, files.Length == 1 ? maxBounds : scr.Bounds, 0, 0, tBitmap.Width, tBitmap.Height, GraphicsUnit.Pixel);
+                                    break;
+                                case TileMode.FIT:
+                                    DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds);
+                                    break;
+                                case TileMode.FILL:
+                                    DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds, true);
+                                    break;
+                            }
                         }
                         currentFile += 1;
                     }
@@ -98,15 +97,16 @@ namespace osu__Background_Overlay
                 //Only one case exists where one image
                 //is displayed at any one time
                 case TileMode.SPAN:
-                    tBitmap.Dispose();
                     using (FileStream stream = new FileStream(files[0], FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        tBitmap = new Bitmap(Image.FromStream(stream));
-                    DrawImageClippedFitCentered(screenGraphics, tBitmap, maxBounds, true);
+                    using(Bitmap tBitmap = new Bitmap(Image.FromStream(stream)))
+                        DrawImageClippedFitCentered(screenGraphics, tBitmap, maxBounds, true);
                     break;
 
                 case TileMode.TILE:
                     throw new NotImplementedException("osu!BGO does not currently support tiled wallpapers.");
             }
+            screenGraphics.Dispose();
+
             return screenBitmap;
         }
 

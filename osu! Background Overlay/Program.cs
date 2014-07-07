@@ -174,23 +174,22 @@ namespace osu__Background_Overlay
                             //GC sucks for this type of work
                             //So we'll prematurely dispose the bitmap
                             //to prevent memory leaks
-                            clippedBG.Dispose();
 
-
-                            clippedBG = CaptureFromScreen(OsuLocation.X,
+                            using (clippedBG = CaptureFromScreen(OsuLocation.X,
                                 OsuLocation.Y,
                                 ClipRectangle.Right - ClipRectangle.Left,
-                                ClipRectangle.Bottom - ClipRectangle.Top);
-                            
-                            //Save to file
-                            try
+                                ClipRectangle.Bottom - ClipRectangle.Top))
                             {
-                                clippedBG.Save(Path.Combine(currentSkinDirectory, OSU_BACKGROUND_NAME));
-                            }
-                            catch
-                            {
-                                //Generic GDI error, skip frame
-                                return;
+                                //Save to file
+                                try
+                                {
+                                    clippedBG.Save(Path.Combine(currentSkinDirectory, OSU_BACKGROUND_NAME));
+                                }
+                                catch
+                                {
+                                    //Generic GDI error, skip frame
+                                    return;
+                                }
                             }
                         }
 
@@ -236,11 +235,9 @@ namespace osu__Background_Overlay
             Graphics g = Graphics.FromImage(bmp);
 
             using (Bitmap screenBitmap = GraphicsHelper.CopyScreen())
-            {
-                screenBitmap.Save(Application.StartupPath + "\\test.jpg");
                 g.DrawImage(screenBitmap, new Rectangle(0, 0, width, height), new Rectangle(x, y, width, height), GraphicsUnit.Pixel);
-            }
 
+            g.Dispose();
             return bmp;
         }
 
