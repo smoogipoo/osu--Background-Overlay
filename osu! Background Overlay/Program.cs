@@ -236,7 +236,10 @@ namespace osu__Background_Overlay
             Graphics g = Graphics.FromImage(bmp);
 
             using (Bitmap screenBitmap = GraphicsHelper.CopyScreen())
-                g.DrawImage(screenBitmap, new Rectangle(0, 0, width, height), new Rectangle(x, y, width, height), GraphicsUnit.Pixel);                
+            {
+                screenBitmap.Save(Application.StartupPath + "\\test.jpg");
+                g.DrawImage(screenBitmap, new Rectangle(0, 0, width, height), new Rectangle(x, y, width, height), GraphicsUnit.Pixel);
+            }
 
             return bmp;
         }
