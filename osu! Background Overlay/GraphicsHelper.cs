@@ -82,13 +82,13 @@ namespace osu__Background_Overlay
                                 DrawImageUnscaledClippedCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds);
                                 break;
                             case TileMode.STRETCH:
-                                screenGraphics.DrawImage(tBitmap, files.Length == 1 ? maxBounds : screens[currentFile].Bounds, 0, 0, tBitmap.Width, tBitmap.Height, GraphicsUnit.Pixel);
+                                screenGraphics.DrawImage(tBitmap, files.Length == 1 ? maxBounds : scr.Bounds, 0, 0, tBitmap.Width, tBitmap.Height, GraphicsUnit.Pixel);
                                 break;
                             case TileMode.FIT:
-                                DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : screens[currentFile].Bounds);
+                                DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds);
                                 break;
                             case TileMode.FILL:
-                                DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : screens[currentFile].Bounds, true);
+                                DrawImageClippedFitCentered(screenGraphics, tBitmap, files.Length == 1 ? maxBounds : scr.Bounds, true);
                                 break;
                         }
                         currentFile += 1;
