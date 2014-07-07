@@ -113,7 +113,7 @@ namespace osu__Background_Overlay
         /// <summary>
         /// Implements centering in the .NET method DrawImageUnscaledandClipped.
         /// </summary>
-        /// <param name="targetGraphics">The target garphics object where the imgae will be drawn.</param>
+        /// <param name="targetGraphics">The target graphics object where the imgae will be drawn.</param>
         /// <param name="sourceImage">The image to fill the target graphics with.</param>
         /// <param name="bounds">The maximum bounds of the desired target image area in the graphics object.</param>
         private static void DrawImageUnscaledClippedCentered(Graphics targetGraphics, Image sourceImage, Rectangle bounds)
@@ -135,7 +135,7 @@ namespace osu__Background_Overlay
         /// Fit scaling -> All of the image will be visible on the screen with black borders for unmatching aspect ratios.
         /// Fill scaling -> An amount of the image enough to remove any black borders will be visible on the screen.
         /// </summary>
-        /// <param name="targetGraphics">The target garphics object where the imgae will be drawn.</param>
+        /// <param name="targetGraphics">The target graphics object where the imgae will be drawn.</param>
         /// <param name="sourceImage">The image to fill the target graphics with.</param>
         /// <param name="bounds">The maximum bounds of the desired target image area in the graphics object.</param>
         /// <param name="fill">Specifies if the fill algorithm should be used instead of fit.</param>
@@ -150,7 +150,7 @@ namespace osu__Background_Overlay
             int height = (int)(sourceImage.Height * scaleRatio);
 
             targetGraphics.DrawImage(sourceImage, 
-                new Rectangle(bounds.X + bounds.Width / 2 - width / 2, bounds.Y +  bounds.Height / 2 - height / 2, width, height), 
+                new Rectangle(bounds.X + bounds.Width / 2 - width / 2, bounds.Y + bounds.Height / 2 - height / 2, width, height), 
                 new Rectangle(0, 0, sourceImage.Width, sourceImage.Height), 
                 GraphicsUnit.Pixel);
         }
