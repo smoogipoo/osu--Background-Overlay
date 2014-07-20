@@ -25,15 +25,15 @@ namespace osu__Background_Overlay
         private const string SKIN_BACKUP_PREFIX = "BGOBackup_";
         private const string OSU_BACKGROUND_NAME = "menu-background.jpg";
 
-        private static WinApiHelper.RECT ClipRectangle;
-        private static Point OsuLocation = new Point(int.MinValue, int.MinValue);
-        private static Process OsuProcess;
-        private static FileSystemWatcher BackgroundWatcher;
+        private static WinApiHelper.RECT clipRectangle;
+        private static Point osuLocation = new Point(int.MinValue, int.MinValue);
+        private static Process osuProcess;
+        private static FileSystemWatcher backgroundFileWatcher;
 
         //Use a global variable so we can lock the file
         private static Bitmap clippedBG = new Bitmap(1, 1);
 
-        private static bool IsShown;
+        private static bool isShown;
 
         static void Main()
         {
@@ -78,7 +78,7 @@ namespace osu__Background_Overlay
 
         static void ShowHideMenuItem_Click(object sender, EventArgs e)
         {
-            if (IsShown)
+            if (isShown)
             {
                 WinApiHelper.ShowWindow(WinApiHelper.GetConsoleWindow(), 0);
                 ((MenuItem)sender).Text = @"Show the console";
@@ -88,7 +88,7 @@ namespace osu__Background_Overlay
                 ((MenuItem)sender).Text = @"Hide the console";
                 WinApiHelper.ShowWindow(WinApiHelper.GetConsoleWindow(), 5);
             }
-            IsShown = !IsShown;
+            isShown = !isShown;
         }
 
         private static void ProgramMain()
@@ -101,9 +101,9 @@ namespace osu__Background_Overlay
 
             
 
-            BackgroundWatcher = new FileSystemWatcher(Path.GetDirectoryName((string)Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop").GetValue("Wallpaper")));
-            BackgroundWatcher.Changed += (sender, e) => WallpaperChanged(1000);
-            BackgroundWatcher.EnableRaisingEvents = true;
+            backgroundFileWatcher = new FileSystemWatcher(Path.GetDirectoryName((string)Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop").GetValue("Wallpaper")));
+            backgroundFileWatcher.Changed += (sender, e) => WallpaperChanged(1000);
+            backgroundFileWatcher.EnableRaisingEvents = true;
 
             Thread monitorThread = new Thread(MonitorOsu)
             {
@@ -119,12 +119,12 @@ namespace osu__Background_Overlay
 
         private static void WallpaperChanged(int sleepTime)
         {
-            BackgroundWatcher.EnableRaisingEvents = false;
+            backgroundFileWatcher.EnableRaisingEvents = false;
             Thread.Sleep(sleepTime);
 
-            if (OsuProcess != null)
+            if (osuProcess != null)
             {
-                string osuDirectory = Path.GetDirectoryName(OsuProcess.Modules[0].FileName);
+                string osuDirectory = Path.GetDirectoryName(osuProcess.Modules[0].FileName);
                 string currentSkinDirectory = "";
                 //Read the user's skin file
                 using (StreamReader sR = new StreamReader(Path.Combine(osuDirectory, "osu!." + Environment.UserName + ".cfg")))
@@ -167,7 +167,7 @@ namespace osu__Background_Overlay
                         File.Copy(Path.Combine(currentSkinDirectory, OSU_BACKGROUND_NAME), Path.Combine(currentSkinDirectory, SKIN_BACKUP_PREFIX + OSU_BACKGROUND_NAME));
                     }
 
-                    if (ClipRectangle.Right != 0 && OsuLocation.X != int.MinValue)
+                    if (clipRectangle.Right != 0 && osuLocation.X != int.MinValue)
                     {
                         lock (clippedBG)
                         {
@@ -175,10 +175,10 @@ namespace osu__Background_Overlay
                             //So we'll prematurely dispose the bitmap
                             //to prevent memory leaks
 
-                            using (clippedBG = CaptureFromScreen(OsuLocation.X,
-                                OsuLocation.Y,
-                                ClipRectangle.Right - ClipRectangle.Left,
-                                ClipRectangle.Bottom - ClipRectangle.Top))
+                            using (clippedBG = CaptureFromScreen(osuLocation.X,
+                                osuLocation.Y,
+                                clipRectangle.Right - clipRectangle.Left,
+                                clipRectangle.Bottom - clipRectangle.Top))
                             {
                                 //Save to file
                                 try
@@ -196,7 +196,7 @@ namespace osu__Background_Overlay
                         IntPtr currentWindow = WinApiHelper.GetForegroundWindow();
 
                         //SendInput sends commands to the foreground window
-                        WinApiHelper.SetForegroundWindow(OsuProcess.MainWindowHandle);
+                        WinApiHelper.SetForegroundWindow(osuProcess.MainWindowHandle);
 
                         //Sleep while foreground window is being shown
                         Thread.Sleep(100);
@@ -225,7 +225,7 @@ namespace osu__Background_Overlay
                     }
                 }
             }
-            BackgroundWatcher.EnableRaisingEvents = true;
+            backgroundFileWatcher.EnableRaisingEvents = true;
         }
 
         private static Bitmap CaptureFromScreen(int x, int y, int width, int height)
@@ -246,7 +246,7 @@ namespace osu__Background_Overlay
             while (true)
             {
                 //Find the osu! process if not previously found
-                if (OsuProcess == null)
+                if (osuProcess == null)
                 {
                     Log("Attempting to find the osu! process...");
 
@@ -265,7 +265,7 @@ namespace osu__Background_Overlay
                         Thread.Sleep(1000);
                         continue;
                     }
-                    OsuProcess = processes[0];
+                    osuProcess = processes[0];
 
                     Log("Found osu! process!");
                 }
@@ -274,16 +274,16 @@ namespace osu__Background_Overlay
                 Point p = Point.Empty;
 
                 //Get the window rectangle
-                if (!WinApiHelper.GetClientRect(OsuProcess.MainWindowHandle, out ClipRectangle)
-                    || !WinApiHelper.ClientToScreen(OsuProcess.MainWindowHandle, out p))
+                if (!WinApiHelper.GetClientRect(osuProcess.MainWindowHandle, out clipRectangle)
+                    || !WinApiHelper.ClientToScreen(osuProcess.MainWindowHandle, out p))
                 {
                     //Couldn't find window, reset to null
-                    OsuProcess = null;
+                    osuProcess = null;
                 }
 
-                if (OsuLocation != p)
+                if (osuLocation != p)
                 {
-                    OsuLocation = p;
+                    osuLocation = p;
                     WallpaperChanged(0);
                 }
 
